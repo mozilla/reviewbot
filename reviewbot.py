@@ -1,3 +1,7 @@
+#  This Source Code Form is subject to the terms of the Mozilla Public
+#  License, v. 2.0. If a copy of the MPL was not distributed with this
+#  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 # 1) need to verify usernames actually exist on IRC
 # 2) please add the summary line to give more context
 # 3) the message needs to be more actionable. "it is ready to land" or "r+ was granted" or "5 review issues left"
@@ -14,7 +18,7 @@ import reviewboard
 PULSE_HOST = 'pulse.mozilla.org'
 PULSE_PORT = 5671
 PULSE_USERID = 'reviewbot'
-PULSE_PASSWORD = 'hello123'
+PULSE_PASSWORD = ''
 PULSE_SSL = {}
 PULSE_TIMEOUT = 20
 PULSE_VHOST = '/'
