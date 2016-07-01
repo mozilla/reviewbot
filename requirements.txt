@@ -1,0 +1,3 @@
+amqpy
+irc3
+requests
