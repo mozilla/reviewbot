@@ -4,13 +4,14 @@
 
 import requests
 
-def get_reviewer_from_id(id: int) -> str:
+def get_reviewers_from_id(id: int) -> str:
     resp = requests.get(
                 'http://reviewboard.mozilla.org/api/review-requests/{}/'
                 .format(id))
     print(resp.text)
     try:
-        return resp.json()['review_request']['target_people'][0]['title']
+        return [person['title'] for person in
+                resp.json()['review_request']['target_people']]
     except KeyError:
         return None
 
