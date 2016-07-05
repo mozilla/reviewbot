@@ -1,3 +1,6 @@
-amqpy
-irc3
-requests
+amqpy==0.13.1
+docopt==0.6.2
+irc3==0.9.3
+requests==2.10.0
+six==1.10.0
+venusian==1.0
