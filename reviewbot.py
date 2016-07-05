@@ -74,10 +74,9 @@ def get_review_messages(bot, host, port, userid, password, ssl, vhost,
             
             if msg['_meta']['routing_key'] == 'mozreview.commits.published':
                 handle_review_requested(bot, msg)
-                message.ack()
             elif msg['_meta']['routing_key'] == 'mozreview.review.published':
-                pass
-                # handle_reviewed(bot, msg)
+                handle_reviewed(bot, msg)
+            message.ack()
 
     conn = Connection(host=host, port=port, ssl=ssl, userid=userid,
             password=password, virtual_host=vhost)
@@ -112,7 +111,7 @@ class ReviewBot(object):
         PULSE_USERID = config['pulse_username']
         PULSE_PASSWORD = config['pulse_password']
         PULSE_SSL = {} if config['pulse_ssl'] else None
-        PULSE_TIMEOUT = config['pulse_timeout']
+        PULSE_TIMEOUT = float(config['pulse_timeout'])
         PULSE_VHOST = config['pulse_vhost']
         PULSE_EXCHANGE = config['pulse_exchange']
         PULSE_QUEUE = config['pulse_queue']
