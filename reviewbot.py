@@ -67,7 +67,7 @@ def handle_review_requested(bot, message: dict):
         bot.privmsg(irc_channel, '{}: New review request: {}'.format(
             reviewer, request))
         
-def get_review_messages(bot, host, port, userid, password, ssl, vhost,
+async def get_review_messages(bot, host, port, userid, password, ssl, vhost,
         exchange_name, queue_name, routing_key, timeout):
     class Consumer(AbstractConsumer):
         def run(self, message: Message):
@@ -92,13 +92,13 @@ def get_review_messages(bot, host, port, userid, password, ssl, vhost,
 
     while True:
         if getattr(bot, 'protocol', None) and irc_channel in bot.channels: break # Check if connected to IRC
-        else: yield
+        else: await asyncio.sleep(.001, loop=bot.loop)
 
     while True:
         try:
             conn.drain_events(timeout=timeout)
         except Timeout:
-            yield
+            await asyncio.sleep(.001, loop=bot.loop)
 
 @irc3.plugin
 class ReviewBot(object):
