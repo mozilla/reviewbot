@@ -14,7 +14,7 @@ import irc3
 
 import reviewboard
 
-irc_channel = '#reviewboard' # This is for debug purposes.
+irc_channel = '#reviewbot' # This is for debug purposes.
 
 def get_review_request_url(message: dict) -> str:
     """Return the review request url associated with the message."""
