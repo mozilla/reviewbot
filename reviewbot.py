@@ -14,19 +14,7 @@ import irc3
 
 import reviewboard
 
-# TODO: Make this part of the config
-PULSE_HOST = 'pulse.mozilla.org'
-PULSE_PORT = 5671
-PULSE_USERID = 'reviewbot'
-PULSE_PASSWORD = ''
-PULSE_SSL = {}
-PULSE_TIMEOUT = 20
-PULSE_VHOST = '/'
-PULSE_EXCHANGE = 'exchange/mozreview/'
-PULSE_QUEUE = 'queue/reviewbot/ircbot'
-PULSE_ROUTING_KEY = '#'
-
-irc_channel = '#reviewbot'
+irc_channel = '#reviewboard' # This is for debug purposes.
 
 def get_review_request_url(message: dict) -> str:
     """Return the review request url associated with the message."""
@@ -77,7 +65,8 @@ def handle_review_requested(bot, message: dict):
         bot.privmsg(irc_channel, '{}: New review request: {}'.format(
             reviewer, request))
         
-def get_review_messages(bot, exchange_name, queue_name, routing_key):
+def get_review_messages(bot, host, port, userid, password, ssl, vhost,
+        exchange_name, queue_name, routing_key, timeout):
     class Consumer(AbstractConsumer):
         def run(self, message: Message):
             """Dispatch the message to the correct handler."""
@@ -90,9 +79,8 @@ def get_review_messages(bot, exchange_name, queue_name, routing_key):
                 pass
                 # handle_reviewed(bot, msg)
 
-    conn = Connection(host=PULSE_HOST, port=PULSE_PORT, ssl=PULSE_SSL,
-            userid=PULSE_USERID, password=PULSE_PASSWORD,
-            virtual_host=PULSE_VHOST)
+    conn = Connection(host=host, port=port, ssl=ssl, userid=userid,
+            password=password, virtual_host=vhost)
     channel = conn.channel()
     channel.queue_declare(queue=queue_name, durable=True,
             auto_delete=False)
@@ -107,7 +95,7 @@ def get_review_messages(bot, exchange_name, queue_name, routing_key):
 
     while True:
         try:
-            conn.drain_events(timeout=0.5)
+            conn.drain_events(timeout=timeout)
         except Timeout:
             yield
 
@@ -117,5 +105,19 @@ class ReviewBot(object):
     def __init__(self, bot):
         self.bot = bot
         self.bot.include('irc3.plugins.userlist')
-        self.bot.create_task(get_review_messages(bot, PULSE_EXCHANGE,
-            PULSE_QUEUE, PULSE_ROUTING_KEY))
+
+        config = self.bot.config[__name__]
+        PULSE_HOST = config['pulse_host']
+        PULSE_PORT = config['pulse_port']
+        PULSE_USERID = config['pulse_username']
+        PULSE_PASSWORD = config['pulse_password']
+        PULSE_SSL = {} if config['pulse_ssl'] else None
+        PULSE_TIMEOUT = config['pulse_timeout']
+        PULSE_VHOST = config['pulse_vhost']
+        PULSE_EXCHANGE = config['pulse_exchange']
+        PULSE_QUEUE = config['pulse_queue']
+        PULSE_ROUTING_KEY = config['pulse_routing_key']
+
+        self.bot.create_task(get_review_messages(bot, PULSE_HOST, PULSE_PORT,
+            PULSE_USERID, PULSE_PASSWORD, PULSE_SSL, PULSE_VHOST,
+            PULSE_EXCHANGE, PULSE_QUEUE, PULSE_ROUTING_KEY, PULSE_TIMEOUT))
