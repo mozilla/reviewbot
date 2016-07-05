@@ -45,16 +45,16 @@ def wants_messages(recipient: str) -> bool:
 def handle_reviewed(bot, message: dict):
     recipient = get_requester(message)
     if wants_messages(recipient):
-        bot.privmsg(irc_channel, '{}: New review: {}'.format(
-            recipient, get_review_request_url(message)))
+        bot.privmsg(irc_channel, '{}: New review - {}: {}'.format(
+            recipient,
+            reviewboard.get_summary_from_id(get_review_request_id(message)),
+            get_review_request_url(message)))
         #bot.privmsg(recipient, 'New review: {}'.format(
         #    get_review_request_url(message)))
 
 def handle_review_requested(bot, message: dict):
-    print('Review request:', message)
     reviewer_to_request = {}
     for commit in message['payload']['commits']:
-        print('commit:', commit)
         id = commit['review_request_id']
         recipients = get_reviewers(id)
         for recipient in recipients:

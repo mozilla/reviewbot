@@ -4,16 +4,27 @@
 
 import requests
 
-def get_reviewers_from_id(id: int) -> str:
+def get_review_request_from_id(id: int) -> dict:
+    """Returns the decoded JSON payload for any id."""
     resp = requests.get(
                 'http://reviewboard.mozilla.org/api/review-requests/{}/'
                 .format(id))
-    print(resp.text)
+    return resp.json()
+
+def get_reviewers_from_id(id: int) -> str:
     try:
+        resp = get_review_request_from_id(id)
         return [person['title'] for person in
-                resp.json()['review_request']['target_people']]
+                resp['review_request']['target_people']]
     except KeyError:
         return None
+
+def get_summary_from_id(id: int) -> str:
+    try:
+        resp = get_review_request_from_id(id)
+        return resp['review_request']['summary']
+    except KeyError:
+        return ''
 
 def build_review_request_url(review_board_url: str,
         review_request_id: int) -> str:
