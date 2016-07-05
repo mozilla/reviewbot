@@ -4,4 +4,7 @@ installation.
 
 It is a WIP so no promises right now!
 
+Run with `irc3 config.ini`.
+
 Released under MPL 2.0.
+
