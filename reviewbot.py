@@ -7,6 +7,7 @@
 # 3) the message needs to be more actionable. "it is ready to land" or "r+ was granted" or "5 review issues left"
 import json
 import logging
+from typing import List
 
 from amqpy import AbstractConsumer, Connection, Message, Timeout
 from irc3 import asyncio
@@ -32,8 +33,8 @@ def get_review_request_id(message: dict) -> int:
 def get_requester(message: dict) -> str:
     return message['payload']['review_request_submitter']
 
-def get_reviewer(id: int) -> str:
-    return reviewboard.get_reviewer_from_id(id)
+def get_reviewers(id: int) -> List[str]:
+    return reviewboard.get_reviewers_from_id(id)
 
 def wants_messages(recipient: str) -> bool:
     """Check some sort of long-term store of people who have opted in to being
@@ -55,12 +56,13 @@ def handle_review_requested(bot, message: dict):
     for commit in message['payload']['commits']:
         print('commit:', commit)
         id = commit['review_request_id']
-        recipient = get_reviewer(id)
-        if recipient in reviewer_to_request:
-            reviewer_to_request[recipient] = get_review_request_url(message)
-        else:
-            reviewer_to_request[recipient] = reviewboard.build_review_request_url(
-                    message['payload']['review_board_url'], id)
+        recipients = get_reviewers(id)
+        for recipient in recipients:
+            if recipient in reviewer_to_request:
+                reviewer_to_request[recipient] = get_review_request_url(message)
+            else:
+                reviewer_to_request[recipient] = reviewboard.build_review_request_url(
+                        message['payload']['review_board_url'], id)
     for reviewer, request in reviewer_to_request.items():
         bot.privmsg(irc_channel, '{}: New review request: {}'.format(
             reviewer, request))
