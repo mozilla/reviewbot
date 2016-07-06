@@ -3,8 +3,7 @@
 #  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # 1) need to verify usernames actually exist on IRC
-# 2) please add the summary line to give more context
-# 3) the message needs to be more actionable. "it is ready to land" or "r+ was granted" or "5 review issues left"
+# 2) the message needs to be more actionable. "it is ready to land" or "r+ was granted" or "5 review issues left"
 import json
 import logging
 from typing import List
@@ -59,13 +58,14 @@ def handle_review_requested(bot, message: dict):
         recipients = get_reviewers(id)
         for recipient in recipients:
             if recipient in reviewer_to_request:
-                reviewer_to_request[recipient] = get_review_request_url(message)
+                reviewer_to_request[recipient] = (id,
+                        get_review_request_url(message))
             else:
-                reviewer_to_request[recipient] = reviewboard.build_review_request_url(
-                        message['payload']['review_board_url'], id)
-    for reviewer, request in reviewer_to_request.items():
-        bot.privmsg(irc_channel, '{}: New review request: {}'.format(
-            reviewer, request))
+                reviewer_to_request[recipient] = (id, reviewboard.build_review_request_url(
+                        message['payload']['review_board_url'], id))
+    for reviewer, (id, request) in reviewer_to_request.items():
+        bot.privmsg(irc_channel, '{}: New review request - {}: {}'.format(
+            reviewer, reviewboard.get_summary_from_id(id), request))
         
 async def get_review_messages(bot, host, port, userid, password, ssl, vhost,
         exchange_name, queue_name, routing_key, timeout):
