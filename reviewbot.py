@@ -66,39 +66,7 @@ def handle_review_requested(bot, message: dict):
     for reviewer, (id, request) in reviewer_to_request.items():
         bot.privmsg(irc_channel, '{}: New review request - {}: {}'.format(
             reviewer, reviewboard.get_summary_from_id(id), request))
-        
-async def get_review_messages(bot, host, port, userid, password, ssl, vhost,
-        exchange_name, queue_name, routing_key, timeout):
-    class Consumer(AbstractConsumer):
-        def run(self, message: Message):
-            """Dispatch the message to the correct handler."""
-            msg = json.loads(message.body)
-            
-            if msg['_meta']['routing_key'] == 'mozreview.commits.published':
-                handle_review_requested(bot, msg)
-            elif msg['_meta']['routing_key'] == 'mozreview.review.published':
-                handle_reviewed(bot, msg)
-            message.ack()
 
-    conn = Connection(host=host, port=port, ssl=ssl, userid=userid,
-            password=password, virtual_host=vhost)
-    channel = conn.channel()
-    channel.queue_declare(queue=queue_name, durable=True,
-            auto_delete=False)
-    channel.queue_bind(queue_name, exchange=exchange_name,
-            routing_key=routing_key)
-    consumer = Consumer(channel, queue_name)
-    consumer.declare()
-
-    while True:
-        if getattr(bot, 'protocol', None) and irc_channel in bot.channels: break # Check if connected to IRC
-        else: await asyncio.sleep(.001, loop=bot.loop)
-
-    while True:
-        try:
-            conn.drain_events(timeout=timeout)
-        except Timeout:
-            await asyncio.sleep(.001, loop=bot.loop)
 
 @irc3.plugin
 class ReviewBot(object):
@@ -108,17 +76,53 @@ class ReviewBot(object):
         self.bot.include('irc3.plugins.userlist')
 
         config = self.bot.config[__name__]
-        PULSE_HOST = config['pulse_host']
-        PULSE_PORT = config['pulse_port']
-        PULSE_USERID = config['pulse_username']
-        PULSE_PASSWORD = config['pulse_password']
-        PULSE_SSL = {} if config['pulse_ssl'] else None
-        PULSE_TIMEOUT = float(config['pulse_timeout'])
-        PULSE_VHOST = config['pulse_vhost']
-        PULSE_EXCHANGE = config['pulse_exchange']
-        PULSE_QUEUE = config['pulse_queue']
-        PULSE_ROUTING_KEY = config['pulse_routing_key']
+        self.host = config['pulse_host']
+        self.port = config['pulse_port']
+        self.userid = config['pulse_username']
+        self.password = config['pulse_password']
+        self.ssl = {} if config['pulse_ssl'] else None
+        self.timeout = float(config['pulse_timeout'])
+        self.vhost = config['pulse_vhost']
+        self.exchange_name = config['pulse_exchange']
+        self.queue_name = config['pulse_queue']
+        self.routing_key = config['pulse_routing_key']
 
-        self.bot.create_task(get_review_messages(bot, PULSE_HOST, PULSE_PORT,
-            PULSE_USERID, PULSE_PASSWORD, PULSE_SSL, PULSE_VHOST,
-            PULSE_EXCHANGE, PULSE_QUEUE, PULSE_ROUTING_KEY, PULSE_TIMEOUT))
+        self.bot.create_task(self.get_review_messages())
+
+    async def get_review_messages(self):
+        class Consumer(AbstractConsumer):
+            def __init__(self, channel, queue_name, bot=None):
+                self.bot = bot
+                super().__init__(channel, queue_name)
+
+            def run(self, message: Message):
+                """Dispatch the message to the correct handler."""
+                print('yup')
+                msg = json.loads(message.body)
+                
+                if msg['_meta']['routing_key'] == 'mozreview.commits.published':
+                    handle_review_requested(self.bot, msg)
+                elif msg['_meta']['routing_key'] == 'mozreview.review.published':
+                    handle_reviewed(self.bot, msg)
+                message.ack()
+
+        conn = Connection(host=self.host, port=self.port, ssl=self.ssl,
+                userid=self.userid, password=self.password,
+                virtual_host=self.vhost)
+        channel = conn.channel()
+        channel.queue_declare(queue=self.queue_name, durable=True,
+                auto_delete=False)
+        channel.queue_bind(self.queue_name, exchange=self.exchange_name,
+                routing_key=self.routing_key)
+        consumer = Consumer(channel, self.queue_name, bot=self.bot)
+        consumer.declare()
+
+        while True:
+            if getattr(self.bot, 'protocol', None) and irc_channel in self.bot.channels: break # Check if connected to IRC
+            else: await asyncio.sleep(.001, loop=self.bot.loop)
+
+        while True:
+            try:
+                conn.drain_events(timeout=self.timeout)
+            except Timeout:
+                await asyncio.sleep(.001, loop=self.bot.loop)
