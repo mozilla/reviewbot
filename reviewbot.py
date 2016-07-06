@@ -97,7 +97,6 @@ class ReviewBot(object):
 
             def run(self, message: Message):
                 """Dispatch the message to the correct handler."""
-                print('yup')
                 msg = json.loads(message.body)
                 
                 if msg['_meta']['routing_key'] == 'mozreview.commits.published':
