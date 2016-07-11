@@ -35,39 +35,6 @@ def get_requester(message: dict) -> str:
 def get_reviewers(id: int) -> List[str]:
     return reviewboard.get_reviewers_from_id(id)
 
-def wants_messages(recipient: str) -> bool:
-    """Check some sort of long-term store of people who have opted in to being
-    notified of new review requests and reviews.
-    """
-    return True
-
-def handle_reviewed(bot, message: dict):
-    recipient = get_requester(message)
-    if wants_messages(recipient):
-        bot.privmsg(irc_channel, '{}: New review - {}: {}'.format(
-            recipient,
-            reviewboard.get_summary_from_id(get_review_request_id(message)),
-            get_review_request_url(message)))
-        #bot.privmsg(recipient, 'New review: {}'.format(
-        #    get_review_request_url(message)))
-
-def handle_review_requested(bot, message: dict):
-    reviewer_to_request = {}
-    for commit in message['payload']['commits']:
-        id = commit['review_request_id']
-        recipients = get_reviewers(id)
-        for recipient in recipients:
-            if recipient in reviewer_to_request:
-                reviewer_to_request[recipient] = (id,
-                        get_review_request_url(message))
-            else:
-                reviewer_to_request[recipient] = (id, reviewboard.build_review_request_url(
-                        message['payload']['review_board_url'], id))
-    for reviewer, (id, request) in reviewer_to_request.items():
-        bot.privmsg(irc_channel, '{}: New review request - {}: {}'.format(
-            reviewer, reviewboard.get_summary_from_id(id), request))
-
-
 @irc3.plugin
 class ReviewBot(object):
     """Forwards review requests to the person who needs to review it."""
@@ -125,3 +92,38 @@ class ReviewBot(object):
                 conn.drain_events(timeout=self.timeout)
             except Timeout:
                 await asyncio.sleep(.001, loop=self.bot.loop)
+
+    def handle_reviewed(self, message: dict):
+        recipient = get_requester(message)
+        if wants_messages(recipient):
+            self.bot.privmsg(irc_channel, '{}: New review - {}: {}'.format(
+                recipient,
+                reviewboard.get_summary_from_id(get_review_request_id(message)),
+                get_review_request_url(message)))
+            #bot.privmsg(recipient, 'New review: {}'.format(
+            #    get_review_request_url(message)))
+
+    def handle_review_requested(self, message: dict):
+        reviewer_to_request = {}
+        for commit in message['payload']['commits']:
+            id = commit['review_request_id']
+            recipients = get_reviewers(id)
+            for recipient in recipients:
+                if recipient in reviewer_to_request:
+                    reviewer_to_request[recipient] = (id,
+                            get_review_request_url(message))
+                else:
+                    reviewer_to_request[recipient] = (id, reviewboard.build_review_request_url(
+                            message['payload']['review_board_url'], id))
+        for reviewer, (id, request) in reviewer_to_request.items():
+            if self.wants_messages(reviewer):
+                self.bot.privmsg(irc_channel, '{}: New review request - {}: {}'.format(
+                    reviewer, reviewboard.get_summary_from_id(id), request))
+
+    def wants_messages(self, recipient: str) -> bool:
+        """Check some sort of long-term store of people who have opted in to being
+        notified of new review requests and reviews.
+        """
+        return True
+
+
