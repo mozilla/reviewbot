@@ -58,8 +58,7 @@ class ReviewBot(object):
 
     async def get_review_messages(self):
         class Consumer(AbstractConsumer):
-            def __init__(self, channel, queue_name, plugin, bot=None):
-                self.bot = bot
+            def __init__(self, channel, queue_name, plugin):
                 self.plugin = plugin
                 super().__init__(channel, queue_name)
 
@@ -68,9 +67,9 @@ class ReviewBot(object):
                 msg = json.loads(message.body)
                 
                 if msg['_meta']['routing_key'] == 'mozreview.commits.published':
-                    self.plugin.handle_review_requested(self.bot, msg)
+                    self.plugin.handle_review_requested(msg)
                 elif msg['_meta']['routing_key'] == 'mozreview.review.published':
-                    self.plugin.handle_reviewed(self.bot, msg)
+                    self.plugin.handle_reviewed(msg)
                 message.ack()
 
         conn = Connection(host=self.host, port=self.port, ssl=self.ssl,
@@ -81,7 +80,7 @@ class ReviewBot(object):
                 auto_delete=False)
         channel.queue_bind(self.queue_name, exchange=self.exchange_name,
                 routing_key=self.routing_key)
-        consumer = Consumer(channel, self.queue_name, self, bot=self.bot)
+        consumer = Consumer(channel, self.queue_name, self)
         consumer.declare()
 
         while True:
