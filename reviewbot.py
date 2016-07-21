@@ -5,7 +5,6 @@
 # 1) need to verify usernames actually exist on IRC
 # 2) the message needs to be more actionable. "it is ready to land" or "r+ was granted" or "5 review issues left"
 import json
-import logging
 from typing import List
 
 from amqpy import AbstractConsumer, Connection, Message, Timeout
