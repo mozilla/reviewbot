@@ -31,8 +31,8 @@ def get_review_request_id(message: dict) -> int:
 def get_requester(message: dict) -> str:
     return message['payload']['review_request_submitter']
 
-def get_reviewers(id: int) -> List[str]:
-    return reviewboard.get_reviewers_from_id(id)
+async def get_reviewers(id: int) -> List[str]:
+    return await reviewboard.get_reviewers_from_id(id)
 
 @irc3.plugin
 class ReviewBot(object):
@@ -66,9 +66,9 @@ class ReviewBot(object):
                 msg = json.loads(message.body)
                 
                 if msg['_meta']['routing_key'] == 'mozreview.commits.published':
-                    self.plugin.handle_review_requested(message)
+                    self.plugin.bot.create_task(self.plugin.handle_review_requested(message))
                 elif msg['_meta']['routing_key'] == 'mozreview.review.published':
-                    self.plugin.handle_reviewed(message)
+                    self.plugin.bot.create_task(self.plugin.handle_reviewed(message))
 
         conn = Connection(host=self.host, port=self.port, ssl=self.ssl, userid=self.userid, password=self.password,
                 virtual_host=self.vhost)
@@ -88,21 +88,21 @@ class ReviewBot(object):
             except Timeout:
                 await asyncio.sleep(.001, loop=self.bot.loop)
 
-    def handle_reviewed(self, message: Message):
+    async def handle_reviewed(self, message: Message):
         msg = json.loads(message.body)
         recipient = get_requester(msg)
         if self.wants_messages(recipient):
+            summary = await reviewboard.get_summary_from_id(get_review_request_id(msg))
             self.bot.privmsg(irc_channel, '{}: New review - {}: {}'.format(recipient,
-                                                                           reviewboard.get_summary_from_id(get_review_request_id(msg)),
+                                                                           summary,
                                                                            get_review_request_url(msg)))
-        message.ack()
 
-    def handle_review_requested(self, message: Message):
+    async def handle_review_requested(self, message: Message):
         msg = json.loads(message.body)
         reviewer_to_request = {}
         for commit in msg['payload']['commits']:
             id = commit['review_request_id']
-            recipients = get_reviewers(id)
+            recipients = await get_reviewers(id)
             for recipient in recipients:
                 if recipient in reviewer_to_request:
                     reviewer_to_request[recipient] = (id, get_review_request_url(msg))
@@ -111,8 +111,9 @@ class ReviewBot(object):
                         msg['payload']['review_board_url'], id))
         for reviewer, (id, request) in reviewer_to_request.items():
             if self.wants_messages(reviewer):
+                summary = await reviewboard.get_summary_from_id(id)
                 self.bot.privmsg(irc_channel, '{}: New review request - {}: {}'.format(
-                    reviewer, reviewboard.get_summary_from_id(id), request))
+                    reviewer, summary, request))
         message.ack()
 
     def wants_messages(self, recipient: str) -> bool:
