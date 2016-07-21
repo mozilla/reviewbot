@@ -72,14 +72,11 @@ class ReviewBot(object):
                     self.plugin.handle_reviewed(msg)
                 message.ack()
 
-        conn = Connection(host=self.host, port=self.port, ssl=self.ssl,
-                userid=self.userid, password=self.password,
+        conn = Connection(host=self.host, port=self.port, ssl=self.ssl, userid=self.userid, password=self.password,
                 virtual_host=self.vhost)
         channel = conn.channel()
-        channel.queue_declare(queue=self.queue_name, durable=True,
-                auto_delete=False)
-        channel.queue_bind(self.queue_name, exchange=self.exchange_name,
-                routing_key=self.routing_key)
+        channel.queue_declare(queue=self.queue_name, durable=True, auto_delete=False)
+        channel.queue_bind(self.queue_name, exchange=self.exchange_name, routing_key=self.routing_key)
         consumer = Consumer(channel, self.queue_name, self)
         consumer.declare()
 
@@ -96,8 +93,7 @@ class ReviewBot(object):
     def handle_reviewed(self, message: dict):
         recipient = get_requester(message)
         if self.wants_messages(recipient):
-            self.bot.privmsg(irc_channel, '{}: New review - {}: {}'.format(
-                recipient,
+            self.bot.privmsg(irc_channel, '{}: New review - {}: {}'.format(recipient,
                 reviewboard.get_summary_from_id(get_review_request_id(message)),
                 get_review_request_url(message)))
 
@@ -108,11 +104,10 @@ class ReviewBot(object):
             recipients = get_reviewers(id)
             for recipient in recipients:
                 if recipient in reviewer_to_request:
-                    reviewer_to_request[recipient] = (id,
-                            get_review_request_url(message))
+                    reviewer_to_request[recipient] = (id, get_review_request_url(message))
                 else:
                     reviewer_to_request[recipient] = (id, reviewboard.build_review_request_url(
-                            message['payload']['review_board_url'], id))
+                        message['payload']['review_board_url'], id))
         for reviewer, (id, request) in reviewer_to_request.items():
             if self.wants_messages(reviewer):
                 self.bot.privmsg(irc_channel, '{}: New review request - {}: {}'.format(
