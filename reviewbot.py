@@ -67,9 +67,9 @@ class ReviewBot(object):
                 msg = json.loads(message.body)
                 
                 if msg['_meta']['routing_key'] == 'mozreview.commits.published':
-                    handle_review_requested(self.bot, msg)
+                    self.handle_review_requested(self.bot, msg)
                 elif msg['_meta']['routing_key'] == 'mozreview.review.published':
-                    handle_reviewed(self.bot, msg)
+                    self.handle_reviewed(self.bot, msg)
                 message.ack()
 
         conn = Connection(host=self.host, port=self.port, ssl=self.ssl,
@@ -95,13 +95,11 @@ class ReviewBot(object):
 
     def handle_reviewed(self, message: dict):
         recipient = get_requester(message)
-        if wants_messages(recipient):
+        if self.wants_messages(recipient):
             self.bot.privmsg(irc_channel, '{}: New review - {}: {}'.format(
                 recipient,
                 reviewboard.get_summary_from_id(get_review_request_id(message)),
                 get_review_request_url(message)))
-            #bot.privmsg(recipient, 'New review: {}'.format(
-            #    get_review_request_url(message)))
 
     def handle_review_requested(self, message: dict):
         reviewer_to_request = {}
