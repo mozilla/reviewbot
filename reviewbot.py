@@ -93,9 +93,7 @@ class ReviewBot(object):
         recipient = get_requester(msg)
         if self.wants_messages(recipient):
             summary = await reviewboard.get_summary_from_id(get_review_request_id(msg))
-            self.bot.privmsg(irc_channel, '{}: New review - {}: {}'.format(recipient,
-                                                                           summary,
-                                                                           get_review_request_url(msg)))
+            self.bot.privmsg(irc_channel, '{}: New review - {}: {}'.format(recipient, summary, get_review_request_url(msg)))
 
     async def handle_review_requested(self, message: Message):
         msg = json.loads(message.body)
@@ -112,8 +110,7 @@ class ReviewBot(object):
         for reviewer, (id, request) in reviewer_to_request.items():
             if self.wants_messages(reviewer):
                 summary = await reviewboard.get_summary_from_id(id)
-                self.bot.privmsg(irc_channel, '{}: New review request - {}: {}'.format(
-                    reviewer, summary, request))
+                self.bot.privmsg(irc_channel, '{}: New review request - {}: {}'.format(reviewer, summary, request))
         message.ack()
 
     def wants_messages(self, recipient: str) -> bool:
