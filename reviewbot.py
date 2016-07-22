@@ -2,8 +2,6 @@
 #  License, v. 2.0. If a copy of the MPL was not distributed with this
 #  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-# 1) need to verify usernames actually exist on IRC
-# 2) the message needs to be more actionable. "it is ready to land" or "r+ was granted" or "5 review issues left"
 import json
 from typing import List
 
@@ -27,6 +25,13 @@ def get_review_request_id(message: dict) -> int:
         return message['payload']['parent_review_request_id']
     elif message['_meta']['routing_key'] == 'mozreview.review.published':
         return message['payload']['review_request_id']
+
+async def generate_content_text(id: int) -> str:
+    """Generate an actionable text for reviews."""
+    status = await reviewboard.get_review_request_status(id)
+    if status == True:
+        return 'r+ was granted'
+    return '{} issues left'.format(status)
 
 def get_requester(message: dict) -> str:
     return message['payload']['review_request_submitter']
@@ -92,8 +97,11 @@ class ReviewBot(object):
         msg = json.loads(message.body)
         recipient = get_requester(msg)
         if self.wants_messages(recipient):
-            summary = await reviewboard.get_summary_from_id(get_review_request_id(msg))
-            self.bot.privmsg(irc_channel, '{}: New review - {}: {}'.format(recipient, summary, get_review_request_url(msg)))
+            id = get_review_request_id(msg)
+            summary = await reviewboard.get_summary_from_id(id)
+            content = await generate_content_text(id)
+            self.bot.privmsg(irc_channel, '{}: {} - {}: {}'.format(recipient, content, summary,
+                                                                   get_review_request_url(msg)))
 
     async def handle_review_requested(self, message: Message):
         msg = json.loads(message.body)

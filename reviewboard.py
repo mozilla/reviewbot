@@ -12,6 +12,13 @@ async def get_review_request_from_id(id: int) -> dict:
     resp = await fut
     return resp.json()
 
+async def get_review_request_status(id: int):
+    """Returns True if r+ has been granted, returns an integer with the amount of issues otherwise."""
+    resp = await get_review_request_from_id(id)
+    if resp['review_request']['approved'] == True:
+        return True
+    return resp['review_request']['issue_open_count']
+
 async def get_reviewers_from_id(id: int) -> str:
     try:
         resp = await get_review_request_from_id(id)
