@@ -2,9 +2,41 @@
 #  License, v. 2.0. If a copy of the MPL was not distributed with this
 #  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import functools
+import inspect
+
 from irc3 import asyncio
 import requests
 
+def make_cached_by_frame(*args):
+    def make_cached_decorator(fn):
+        """Makes a function cache by frames of any function with a name in args. Useful so we don't call excess
+        HTTP requests for the same handler.
+        """
+        cache = {}
+        frame_names = args
+
+        @functools.wraps(fn)
+        async def cached(*args, **kwargs):
+            # Find the handler frame
+            frame = None
+            for frame_info in inspect.stack():
+                if frame_info.function in frame_names:
+                    frame = frame_info.frame
+
+            if frame is not None:
+                key = (frame, args)
+                if key in cache:
+                    return cache[key]
+                else:
+                    cache[key] = await fn(*args, **kwargs)
+                    return cache[key]
+            return await fn(*args, **kwargs)
+
+        return cached
+    return make_cached_decorator
+
+@make_cached_by_frame('handle_reviewed', 'handle_review_requested')
 async def get_review_request_from_id(id: int) -> dict:
     """Returns the decoded JSON payload for any id."""
     loop = asyncio.get_event_loop()
