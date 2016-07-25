@@ -127,8 +127,11 @@ class ReviewBot(object):
 
     async def update_channels(self, msg: dict, recipient: str, content: str, summary: str, url: str, bz_components: List[str]):
         """Message all the channels that are registered for the component related to review request."""
+        channels = []
         for component in bz_components:
-            self.bot.privmsg(irc_channel, '{}: {}: {} - {}: {}'.format(component, recipient, content, summary,
+            channels.extend(self.bz_component_to_channels[component])
+        for channel in channels:
+            self.bot.privmsg(irc_channel, '{}: {}: {} - {}: {}'.format(channel, recipient, content, summary,
                                                                        get_review_request_url(msg)))
 
     @handler
@@ -136,7 +139,7 @@ class ReviewBot(object):
         msg = json.loads(message.body)
         recipient = get_requester(msg)
         bz_components = await get_bugzilla_components_from_msg(msg)
-        if self.wants_messages(recipient) or any([comp in self.bz_component_to_channel for comp in bz_components]):
+        if self.wants_messages(recipient) or any([comp in self.bz_component_to_channels for comp in bz_components]):
             id = get_review_request_id(msg)
             summary = await reviewboard.get_summary_from_id(id)
             content = await generate_content_text(id)
@@ -160,7 +163,7 @@ class ReviewBot(object):
 
         bz_components = await get_bugzilla_components_from_msg(msg)
         for reviewer, (id, request) in reviewer_to_request.items():
-            if self.wants_messages(reviewer) or any([comp in self.bz_component_to_channel for comp in bz_components]):
+            if self.wants_messages(reviewer) or any([comp in self.bz_component_to_channels for comp in bz_components]):
                 summary = await reviewboard.get_summary_from_id(id)
                 self.bot.privmsg(irc_channel, '{}: New review request - {}: {}'.format(reviewer, summary, request))
                 await self.update_channels(msg, reviewer, 'New review request', summary, request, bz_components)
@@ -172,7 +175,7 @@ class ReviewBot(object):
             %%load_bz_to_channel_config
         """
         with open('bugzilla_component_to_channel.json', 'rb') as f:
-            self.bz_component_to_channel = json.loads(f.read().decode('utf-8'))
+            self.bz_component_to_channels = json.loads(f.read().decode('utf-8'))
 
     def wants_messages(self, recipient: str) -> bool:
         """Check some sort of long-term store of people who have opted in to being
