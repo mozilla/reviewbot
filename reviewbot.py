@@ -9,6 +9,7 @@ from typing import List
 from amqpy import AbstractConsumer, Connection, Message, Timeout
 from irc3 import asyncio
 import irc3
+from irc3.plugins.command import command
 
 import bugzilla
 import reviewboard
@@ -83,7 +84,7 @@ class ReviewBot(object):
         self.queue_name = config['pulse_queue']
         self.routing_key = config['pulse_routing_key']
 
-        self.load_bz_to_channel_config()
+        self.load_bz_to_channel_config(None, None, None)
 
         # Limit the amount of messages that can be processed simultaneously. This keeps the bot from never processing
         # messages that take a long time to process.
@@ -153,10 +154,14 @@ class ReviewBot(object):
                 summary = await reviewboard.get_summary_from_id(id)
                 self.bot.privmsg(irc_channel, '{}: New review request - {}: {}'.format(reviewer, summary, request))
 
-    def load_bz_to_channel_config(self):
-        """Loads the bugzilla_component_to_channel config into memory."""
+    @command(permission='all_permissions')
+    def load_bz_to_channel_config(self, mask, target, args):
+        """Loads the bugzilla_component_to_channel config into memory.
+
+            %%load_bz_to_channel_config
+        """
         with open('bugzilla_component_to_channel.json', 'rb') as f:
-            self.bz_component_to_channel = json.loads(f.readall())
+            self.bz_component_to_channel = json.loads(f.read().decode('utf-8'))
 
     def wants_messages(self, recipient: str) -> bool:
         """Check some sort of long-term store of people who have opted in to being
