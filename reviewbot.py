@@ -85,6 +85,7 @@ class ReviewBot(object):
         self.routing_key = config['pulse_routing_key']
 
         self.load_bz_to_channel_config(None, None, None)
+        self.load_registered_nicks()
 
         # Limit the amount of messages that can be processed simultaneously. This keeps the bot from never processing
         # messages that take a long time to process.
@@ -168,6 +169,16 @@ class ReviewBot(object):
                 self.bot.privmsg(irc_channel, '{}: New review request - {}: {}'.format(reviewer, summary, request))
                 await self.update_channels(msg, reviewer, 'New review request', summary, request, bz_components)
 
+    def load_registered_nicks(self):
+        """Load the list of nicks that want messages."""
+        with open('registered_users.json', 'rb') as f:
+            self.registered_nicks = json.loads(f.read().decode('utf-8'))
+
+    def save_registered_nicks(self):
+        with open('registered_uers.json', 'rb') as f:
+            towrite = json.dumps(self.registered_nicks)
+            f.write(towrite)
+
     @command(permission='all_permissions')
     def load_bz_to_channel_config(self, mask, target, args):
         """Loads the bugzilla_component_to_channel config into memory.
@@ -177,10 +188,28 @@ class ReviewBot(object):
         with open('bugzilla_component_to_channel.json', 'rb') as f:
             self.bz_component_to_channels = json.loads(f.read().decode('utf-8'))
 
+    @command(permission='view')
+    def register(self, mask, target, args):
+        """Add to the list of people who want to be messaged.
+            %%register
+        """
+        self.registered_nicks.append(mask.nick)
+        self.save_registered_nicks()
+        self.bot.privmsg(mask.nick, 'Registered.')
+
+    @command(permission='view')
+    def deregister(self, mask, target, args):
+        """Remove from the list of people want to be messaged.
+            %%deregister
+        """
+        self.registered_nicks.remove(mask.nick)
+        self.save_registered_nicks()
+        self.bot.privmsg(mask.nick, 'Deregistered.')
+
     def wants_messages(self, recipient: str) -> bool:
         """Check some sort of long-term store of people who have opted in to being
         notified of new review requests and reviews.
         """
-        return True
+        return recipient in self.registered_nicks
 
 
