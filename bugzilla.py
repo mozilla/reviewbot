@@ -7,4 +7,4 @@ async def get_bugzilla_component(bug_id: str) -> str:
     fut = loop.run_in_executor(None, requests.get, 'https://bugzilla.mozilla.org/rest/bug/{}'.format(bug_id))
     resp = await fut
     bug = resp.json()['bugs'][0]
-    return '{}:{}'.format(bug['product'], bug['component'])
+    return '{} :: {}'.format(bug['product'], bug['component'])
