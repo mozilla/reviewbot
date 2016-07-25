@@ -83,6 +83,8 @@ class ReviewBot(object):
         self.queue_name = config['pulse_queue']
         self.routing_key = config['pulse_routing_key']
 
+        self.load_bz_to_channel_config()
+
         # Limit the amount of messages that can be processed simultaneously. This keeps the bot from never processing
         # messages that take a long time to process.
         self.messages_processed = asyncio.Semaphore(value=32)
@@ -150,6 +152,11 @@ class ReviewBot(object):
             if self.wants_messages(reviewer):
                 summary = await reviewboard.get_summary_from_id(id)
                 self.bot.privmsg(irc_channel, '{}: New review request - {}: {}'.format(reviewer, summary, request))
+
+    def load_bz_to_channel_config(self):
+        """Loads the bugzilla_component_to_channel config into memory."""
+        with open('bugzilla_component_to_channel.json', 'rb') as f:
+            self.bz_component_to_channel = json.loads(f.readall())
 
     def wants_messages(self, recipient: str) -> bool:
         """Check some sort of long-term store of people who have opted in to being
