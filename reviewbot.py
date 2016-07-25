@@ -125,16 +125,24 @@ class ReviewBot(object):
             except Timeout:
                 await asyncio.sleep(.001, loop=self.bot.loop)
 
+    async def update_channels(self, msg: dict, recipient: str, content: str, summary: str, url: str, bz_components: List[str]):
+        """Message all the channels that are registered for the component related to review request."""
+        for component in bz_components:
+            self.bot.privmsg(irc_channel, '{}: {}: {} - {}: {}'.format(component, recipient, content, summary,
+                                                                       get_review_request_url(msg)))
+
     @handler
     async def handle_reviewed(self, message: Message):
         msg = json.loads(message.body)
         recipient = get_requester(msg)
-        if self.wants_messages(recipient):
+        bz_components = await get_bugzilla_components_from_msg(msg)
+        if self.wants_messages(recipient) or any([comp in self.bz_component_to_channel for comp in bz_components]):
             id = get_review_request_id(msg)
             summary = await reviewboard.get_summary_from_id(id)
             content = await generate_content_text(id)
-            self.bot.privmsg(irc_channel, '{}: {} - {}: {}'.format(recipient, content, summary,
-                                                                   get_review_request_url(msg)))
+            url = get_review_request_url(msg)
+            self.bot.privmsg(irc_channel, '{}: {} - {}: {}'.format(recipient, content, summary, url))
+            await self.update_channels(msg, recipient, content, summary, url, bz_components)
 
     @handler
     async def handle_review_requested(self, message: Message):
@@ -149,10 +157,13 @@ class ReviewBot(object):
                 else:
                     reviewer_to_request[recipient] = (id, reviewboard.build_review_request_url(
                         msg['payload']['review_board_url'], id))
+
+        bz_components = await get_bugzilla_components_from_msg(msg)
         for reviewer, (id, request) in reviewer_to_request.items():
-            if self.wants_messages(reviewer):
+            if self.wants_messages(reviewer) or any([comp in self.bz_component_to_channel for comp in bz_components]):
                 summary = await reviewboard.get_summary_from_id(id)
                 self.bot.privmsg(irc_channel, '{}: New review request - {}: {}'.format(reviewer, summary, request))
+                await self.update_channels(msg, reviewer, 'New review request', summary, request, bz_components)
 
     @command(permission='all_permissions')
     def load_bz_to_channel_config(self, mask, target, args):
