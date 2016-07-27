@@ -201,14 +201,19 @@ class ReviewBot(object):
         bz_components = await get_bugzilla_components_from_msg(msg)
         bz_channels = self.channels_for_bug_components(bz_components)
         for reviewer, (id, request) in reviewer_to_request.items():
-            if self.wants_messages(reviewer) or bz_channels:
-                summary = await reviewboard.get_summary_from_id(id)
-                m = '{}: New review request - {}: {}'.format(reviewer, summary,
-                                                             request)
-                self.bot.privmsg(irc_channel, m)
-                await self.update_channels(bz_channels, msg, reviewer,
-                                           'New review request', summary,
-                                           request, bz_components)
+            summary = await reviewboard.get_summary_from_id(id)
+            m = '{}: New review request - {}: {}'.format(reviewer, summary,
+                                                         request)
+            # Only send to dummy channel for now.
+            for channel in sorted(bz_channels):
+                await self.bot.privmsg(irc_channel, '(%s!) %s' % (channel, m))
+
+            if not bz_channels:
+                await self.bot.privmsg(irc_channel, '(no channel) %s' % m)
+
+            #await self.update_channels(bz_channels, msg, reviewer,
+            #                           'New review request', summary,
+            #                           request, bz_components)
 
     def load_registered_nicks(self):
         """Load the list of nicks that want messages."""
