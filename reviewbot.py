@@ -2,8 +2,10 @@
 #  License, v. 2.0. If a copy of the MPL was not distributed with this
 #  file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import codecs
 import functools
 import json
+import re
 from typing import List
 
 from amqpy import AbstractConsumer, Connection, Message, Timeout
@@ -171,13 +173,10 @@ class ReviewBot(object):
 
     def load_registered_nicks(self):
         """Load the list of nicks that want messages."""
-        with open('registered_users.json', 'rb') as f:
-            self.registered_nicks = json.loads(f.read().decode('utf-8'))
+        self.registered_nicks = self.get_state('registered_users', [])
 
     def save_registered_nicks(self):
-        with open('registered_uers.json', 'rb') as f:
-            towrite = json.dumps(self.registered_nicks)
-            f.write(towrite)
+        self.save_state('registered_users', self.registered_nicks)
 
     @command(permission='all_permissions')
     def load_bz_to_channel_config(self, mask, target, args):
@@ -185,8 +184,7 @@ class ReviewBot(object):
 
             %%load_bz_to_channel_config
         """
-        with open('bugzilla_component_to_channel.json', 'rb') as f:
-            self.bz_component_to_channels = json.loads(f.read().decode('utf-8'))
+        self.bz_component_to_channel = self.get_state('bugzilla_component_to_channel', {})
 
     @command(permission='view')
     def register(self, mask, target, args):
@@ -212,4 +210,33 @@ class ReviewBot(object):
         """
         return recipient in self.registered_nicks
 
+    def get_state(self, key, default):
+        """Obtain persisted state.
 
+        If no state is present, returns the value specified in ``default``.
+        """
+        verify_state_key(key)
+
+        path = '%s.json' % key
+        try:
+            with codecs.open(path, 'rb', 'utf-8') as fh:
+                return json.load(fh, encoding='utf-8')
+        except FileNotFoundError:
+            return default
+
+    def save_state(self, key, value):
+        """Save persisted state."""
+        verify_state_key(key)
+        path = '%s.json' % key
+        with codecs.open(path, 'wb', 'utf-8') as fh:
+            json.dump(value, fh, sort_keys=True, indent=4)
+
+
+def verify_state_key(key):
+    """Raise if a key used for state doesn't match expected format.
+
+    We require keys have well-defined names to prevent things like path
+    traversal exploits.
+    """
+    if not re.match('^[a-zA-Z0-9_-]+$', key):
+        raise ValueError('state key must be alphanumeric + -+')
