@@ -174,14 +174,7 @@ class ReviewBot(object):
             for channel in sorted(bz_channels):
                 # Send message to our dummy channel and to the actual channel.
                 await self.bot.privmsg(irc_channel, '(%s) %s' % (channel, m))
-
-                # TODO factor into function.
-                if channel not in self.joined_channels:
-                    self.log.info('joining channel %s' % channel)
-                    # bot.join() doesn't return a future?!
-                    await self.bot.send_line('JOIN %s' % channel)
-                    self.joined_channels.add(channel)
-
+                await self.join_channel(channel)
                 await self.bot.privmsg(channel, m)
 
             if not bz_channels:
@@ -223,6 +216,15 @@ class ReviewBot(object):
 
     def save_registered_nicks(self):
         self.save_state('registered_users', self.registered_nicks)
+
+    async def join_channel(self, channel):
+        if channel in self.joined_channels:
+            return
+
+        self.log.info('joining channel %s' % channel)
+        # bot.join() doesn't return a future?!
+        await self.bot.send_line('JOIN %s' % channel)
+        self.joined_channels.add(channel)
 
     @command(permission='all_permissions')
     def load_bz_to_channel_config(self, mask, target, args):
