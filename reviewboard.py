@@ -36,7 +36,7 @@ def make_cached_by_frame(*args):
         return cached
     return make_cached_decorator
 
-@make_cached_by_frame('handle_reviewed', 'handle_review_requested')
+#@make_cached_by_frame('handle_reviewed', 'handle_review_requested')
 async def get_review_request_from_id(id: int) -> dict:
     """Returns the decoded JSON payload for any id."""
     loop = asyncio.get_event_loop()
