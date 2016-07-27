@@ -266,7 +266,7 @@ class ReviewBot(object):
                 # Replace normalized "\*" what a character class
                 pattern = pattern.replace(r'\*', '[a-zA-Z0-9_\:\-\s]+')
                 re_component = re.compile('^%s$' % pattern)
-                if re_component.match(c):
+                if re_component.match(component):
                     channels |= set(self.bz_component_to_channels[c])
 
         self.log.info('bug components %s resolved to channels %s' % (
