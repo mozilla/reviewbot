@@ -77,6 +77,8 @@ class ReviewBot(object):
         self.bot = bot
         self.bot.include('irc3.plugins.userlist')
 
+        self.log = self.bot.log
+
         config = self.bot.config[__name__]
         self.host = config['pulse_host']
         self.port = config['pulse_port']
