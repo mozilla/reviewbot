@@ -152,15 +152,26 @@ class ReviewBot(object):
         bz_channels = self.channels_for_bug_components(bz_components)
 
         if self.wants_messages(recipient) or bz_channels:
-            id = get_review_request_id(msg)
-            summary = await reviewboard.get_summary_from_id(id)
-            content = await generate_content_text(id)
+            rrid = get_review_request_id(msg)
+
+            rr = await reviewboard.get_review_request_from_id(rrid)
             url = get_review_request_url(msg)
 
-            m = '{}: {} - {}: {}'.format(recipient, content, summary, url)
+            if rr['review_request']['approved']:
+                m = 'r+ granted on %s' % url
+            else:
+                m = 'review submitted (%d issues to address) on %s' % (
+                    rr['issue_open_count'], url)
+
+            summary = rr['review_request'].get('summary')
+            if summary:
+                m += ' (%s)' % summary
+
+            m = '%s: %s' % (recipient, m)
             self.bot.privmsg(irc_channel, m)
-            await self.update_channels(bz_channels, msg, recipient, content,
-                                       summary, url, bz_components)
+
+            for channel in sorted(bz_channels):
+                await self.bot.privmsg(channel, '(%s): %s' % (channel, m))
 
     @handler
     async def handle_review_requested(self, message: Message):
