@@ -153,32 +153,31 @@ class ReviewBot(object):
         bz_components = await get_bugzilla_components_from_msg(msg)
         bz_channels = self.channels_for_bug_components(bz_components)
 
-        if self.wants_messages(recipient) or bz_channels:
-            rrid = get_review_request_id(msg)
+        rrid = get_review_request_id(msg)
 
-            rr = await reviewboard.get_review_request_from_id(rrid)
-            url = get_review_request_url(msg)
+        rr = await reviewboard.get_review_request_from_id(rrid)
+        url = get_review_request_url(msg)
 
-            if rr['review_request']['approved']:
-                m = 'r+ granted on %s' % url
-            else:
-                m = 'review submitted (%d issues to address) on %s' % (
-                    rr['review_request']['issue_open_count'], url)
+        if rr['review_request']['approved']:
+            m = 'r+ granted on %s' % url
+        else:
+            m = 'review submitted (%d issues to address) on %s' % (
+                rr['review_request']['issue_open_count'], url)
 
-            summary = rr['review_request'].get('summary')
-            if summary:
-                m += ' (%s)' % summary
+        summary = rr['review_request'].get('summary')
+        if summary:
+            m += ' (%s)' % summary
 
-            m = '%s: %s' % (recipient, m)
+        m = '%s: %s' % (recipient, m)
 
-            for channel in sorted(bz_channels):
-                # Send message to our dummy channel and to the actual channel.
-                await self.bot.privmsg(irc_channel, '(%s) %s' % (channel, m))
-                await self.join_channel(channel)
-                await self.bot.privmsg(channel, m)
+        for channel in sorted(bz_channels):
+            # Send message to our dummy channel and to the actual channel.
+            await self.bot.privmsg(irc_channel, '(%s) %s' % (channel, m))
+            await self.join_channel(channel)
+            await self.bot.privmsg(channel, m)
 
-            if not bz_channels:
-                await self.bot.privmsg(irc_channel, '(no channel) %s' % m)
+        if not bz_channels:
+            await self.bot.privmsg(irc_channel, '(no channel) %s' % m)
 
             # TODO send to recipient
 
