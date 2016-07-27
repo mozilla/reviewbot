@@ -65,10 +65,10 @@ async def get_summary_from_id(id: int) -> str:
     except KeyError:
         return ''
 
-async def get_bugzilla_id(id: int) -> str:
-    """Gets the RB commit id. In MozReview the commit id for parent review requests is in the form 'bz://id/user. """
+async def get_bugzilla_ids(id: int) -> str:
+    """Get a list of Bug IDs a review request is attached to."""
     resp = await get_review_request_from_id(id)
-    return resp['review_request']['commit_id'].split('/')[2]
+    return resp['review_request'].get('bugs_closed', [])
 
 def build_review_request_url(review_board_url: str, review_request_id: int) -> str:
     """Build a review request url based on the review board url and 

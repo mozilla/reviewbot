@@ -53,9 +53,12 @@ async def get_bugzilla_components_from_msg(msg: dict) -> List[str]:
             bz_comps.add(bz_comp)
         return list(bz_comps)
     if msg['_meta']['routing_key'] == 'mozreview.commits.published':
-        bug_id = await reviewboard.get_bugzilla_id(get_review_request_id(msg))
-        bz_comp = await bugzilla.get_bugzilla_component(bug_id)
-        return [bz_comp]
+        bug_ids = await reviewboard.get_bugzilla_ids(get_review_request_id(msg))
+        bz_comps = []
+        for bug in bug_ids:
+            bz_comps.append(await bugzilla.get_bugzilla_component(bug))
+
+        return bz_comps
 
 def handler(handler_fn):
     """Do common things we want with a handler like rate limit and ack the messages."""
