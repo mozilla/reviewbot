@@ -171,7 +171,7 @@ class ReviewBot(object):
             self.bot.privmsg(irc_channel, m)
 
             for channel in sorted(bz_channels):
-                await self.bot.privmsg(channel, '(%s): %s' % (channel, m))
+                await self.bot.privmsg(irc_channel, '(%s): %s' % (channel, m))
 
     @handler
     async def handle_review_requested(self, message: Message):
