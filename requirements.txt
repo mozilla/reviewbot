@@ -1,6 +1,12 @@
-amqpy==0.13.1
-docopt==0.6.2
-irc3==0.9.3
-requests==2.10.0
-six==1.10.0
-venusian==1.0
+amqpy==0.13.1 \
+    --hash=sha256:55be9f70ccbbcd7926cd0adff6289faf6f0c175e5ec65d1443d303f27360abfd
+docopt==0.6.2 \
+    --hash=sha256:49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491
+irc3==0.9.3 \
+    --hash=sha256:28b94a487070b14e95e63f87e2e03e69002d9ea0365e1a64f9cd512c53b86082
+requests==2.10.0 \
+    --hash=sha256:09bc1b5f3a56cd8c48d433213a8cba51a67d12936568f73b5f1793fcb0c0979e
+six==1.10.0 \
+    --hash=sha256:0ff78c403d9bccf5a425a6d31a12aa6b47f1c21ca4dc2573a7e2f32a97335eb1
+venusian==1.0 \
+    --hash=sha256:1720cff2ca9c369c840c1d685a7c7a21da1afa687bfe62edd93cae4bf429ca5a
