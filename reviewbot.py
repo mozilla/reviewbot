@@ -138,8 +138,9 @@ class ReviewBot(object):
                               bz_components: List[str]):
         """Message all the channels that are registered for the component related to review request."""
         for channel in sorted(channels):
-            self.bot.privmsg(irc_channel, '{}: {}: {} - {}: {}'.format(channel, recipient, content, summary,
-                                                                       get_review_request_url(msg)))
+            m = '{}: {}: {} - {}: {}'.format(channel, recipient, content,
+                                             summary, get_review_request_url(msg))
+            self.bot.privmsg(irc_channel, m)
 
     @handler
     async def handle_reviewed(self, message: Message):
@@ -155,7 +156,9 @@ class ReviewBot(object):
             summary = await reviewboard.get_summary_from_id(id)
             content = await generate_content_text(id)
             url = get_review_request_url(msg)
-            self.bot.privmsg(irc_channel, '{}: {} - {}: {}'.format(recipient, content, summary, url))
+
+            m = '{}: {} - {}: {}'.format(recipient, content, summary, url)
+            self.bot.privmsg(irc_channel, m)
             await self.update_channels(bz_channels, msg, recipient, content,
                                        summary, url, bz_components)
 
@@ -180,7 +183,9 @@ class ReviewBot(object):
         for reviewer, (id, request) in reviewer_to_request.items():
             if self.wants_messages(reviewer) or bz_channels:
                 summary = await reviewboard.get_summary_from_id(id)
-                self.bot.privmsg(irc_channel, '{}: New review request - {}: {}'.format(reviewer, summary, request))
+                m = '{}: New review request - {}: {}'.format(reviewer, summary,
+                                                             request)
+                self.bot.privmsg(irc_channel, m)
                 await self.update_channels(bz_channels, msg, reviewer,
                                            'New review request', summary,
                                            request, bz_components)
