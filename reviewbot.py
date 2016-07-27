@@ -187,7 +187,7 @@ class ReviewBot(object):
 
             %%load_bz_to_channel_config
         """
-        self.bz_component_to_channel = self.get_state('bugzilla_component_to_channel', {})
+        self.bz_component_to_channels = self.get_state('bugzilla_component_to_channel', {})
 
     @command(permission='view')
     def register(self, mask, target, args):
