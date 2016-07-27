@@ -184,6 +184,11 @@ class ReviewBot(object):
 
                 await self.bot.privmsg(channel, m)
 
+            if not bz_channels:
+                await self.bot.privmsg(irc_channel, '(no channel) %s' % m)
+
+            # TODO send to recipient
+
     @handler
     async def handle_review_requested(self, message: Message):
         msg = json.loads(message.body)
