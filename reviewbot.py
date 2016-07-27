@@ -142,6 +142,8 @@ class ReviewBot(object):
     @handler
     async def handle_reviewed(self, message: Message):
         msg = json.loads(message.body)
+        self.log.info('handling mozreview.review.published for %s' %
+                      get_review_request_id(msg))
         recipient = get_requester(msg)
         bz_components = await get_bugzilla_components_from_msg(msg)
         bz_channels = self.channels_for_bug_components(bz_components)
@@ -158,6 +160,8 @@ class ReviewBot(object):
     @handler
     async def handle_review_requested(self, message: Message):
         msg = json.loads(message.body)
+        self.log.info('handling mozreview.commits.published for %s' %
+                      get_review_request_id(msg))
         reviewer_to_request = {}
         for commit in msg['payload']['commits']:
             id = commit['review_request_id']
@@ -262,6 +266,9 @@ class ReviewBot(object):
                 re_component = re.compile('^%s$' % pattern)
                 if re_component.match(c):
                     channels |= set(self.bz_component_to_channels[c])
+
+        self.log.info('bug components %s resolved to channels %s' % (
+                      components, channels))
 
         return channels
 
