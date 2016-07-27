@@ -40,7 +40,7 @@ def make_cached_by_frame(*args):
 async def get_review_request_from_id(id: int) -> dict:
     """Returns the decoded JSON payload for any id."""
     loop = asyncio.get_event_loop()
-    fut = loop.run_in_executor(None, requests.get, 'http://reviewboard.mozilla.org/api/review-requests/{}/'.format(id))
+    fut = loop.run_in_executor(None, requests.get, 'https://reviewboard.mozilla.org/api/review-requests/{}/'.format(id))
     resp = await fut
     return resp.json()
 
