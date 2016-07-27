@@ -98,6 +98,8 @@ class ReviewBot(object):
         # messages that take a long time to process.
         self.messages_processed = asyncio.Semaphore(value=32)
 
+        self.joined_channels = set()
+
         self.bot.create_task(self.get_review_messages())
 
     async def get_review_messages(self):
@@ -172,6 +174,13 @@ class ReviewBot(object):
             for channel in sorted(bz_channels):
                 # Send message to our dummy channel and to the actual channel.
                 await self.bot.privmsg(irc_channel, '(%s) %s' % (channel, m))
+
+                # TODO factor into function.
+                if channel not in self.joined_channels:
+                    self.log.info('joining channel %s' % channel)
+                    await self.bot.join(channel)
+                    self.joined_channels.add(channel)
+
                 await self.bot.privmsg(channel, m)
 
     @handler
