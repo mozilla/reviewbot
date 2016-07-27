@@ -178,7 +178,8 @@ class ReviewBot(object):
                 # TODO factor into function.
                 if channel not in self.joined_channels:
                     self.log.info('joining channel %s' % channel)
-                    await self.bot.join(channel)
+                    # bot.join() doesn't return a future?!
+                    await self.bot.send_line('JOIN %s' % channel)
                     self.joined_channels.add(channel)
 
                 await self.bot.privmsg(channel, m)
