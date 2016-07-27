@@ -249,6 +249,20 @@ class ReviewBot(object):
         channels = set()
         for component in components:
             channels |= set(self.bz_component_to_channels.get(component, []))
+
+            # Now do a loose match against patterns in the component.
+            for c in self.bz_component_to_channels:
+                if '*' not in c:
+                    continue
+
+                # "*" will get normalized to "\*"
+                pattern = re.escape(c)
+                # Replace normalized "\*" what a character class
+                pattern = pattern.replace(r'\*', '[a-zA-Z0-9_\:\-\s]+')
+                re_component = re.compile('^%s$' % pattern)
+                if re_component.match(c):
+                    channels |= set(self.bz_component_to_channels[c])
+
         return channels
 
 
