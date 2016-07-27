@@ -131,12 +131,11 @@ class ReviewBot(object):
             except Timeout:
                 await asyncio.sleep(.001, loop=self.bot.loop)
 
-    async def update_channels(self, msg: dict, recipient: str, content: str, summary: str, url: str, bz_components: List[str]):
+    async def update_channels(self, channels: set, msg: dict, recipient: str,
+                              content: str, summary: str, url: str,
+                              bz_components: List[str]):
         """Message all the channels that are registered for the component related to review request."""
-        channels = []
-        for component in bz_components:
-            channels.extend(self.bz_component_to_channels[component])
-        for channel in channels:
+        for channel in sorted(channels):
             self.bot.privmsg(irc_channel, '{}: {}: {} - {}: {}'.format(channel, recipient, content, summary,
                                                                        get_review_request_url(msg)))
 
@@ -145,13 +144,16 @@ class ReviewBot(object):
         msg = json.loads(message.body)
         recipient = get_requester(msg)
         bz_components = await get_bugzilla_components_from_msg(msg)
-        if self.wants_messages(recipient) or any([comp in self.bz_component_to_channels for comp in bz_components]):
+        bz_channels = self.channels_for_bug_components(bz_components)
+
+        if self.wants_messages(recipient) or bz_channels:
             id = get_review_request_id(msg)
             summary = await reviewboard.get_summary_from_id(id)
             content = await generate_content_text(id)
             url = get_review_request_url(msg)
             self.bot.privmsg(irc_channel, '{}: {} - {}: {}'.format(recipient, content, summary, url))
-            await self.update_channels(msg, recipient, content, summary, url, bz_components)
+            await self.update_channels(bz_channels, msg, recipient, content,
+                                       summary, url, bz_components)
 
     @handler
     async def handle_review_requested(self, message: Message):
@@ -168,11 +170,14 @@ class ReviewBot(object):
                         msg['payload']['review_board_url'], id))
 
         bz_components = await get_bugzilla_components_from_msg(msg)
+        bz_channels = self.channels_for_bug_components(bz_components)
         for reviewer, (id, request) in reviewer_to_request.items():
-            if self.wants_messages(reviewer) or any([comp in self.bz_component_to_channels for comp in bz_components]):
+            if self.wants_messages(reviewer) or bz_channels:
                 summary = await reviewboard.get_summary_from_id(id)
                 self.bot.privmsg(irc_channel, '{}: New review request - {}: {}'.format(reviewer, summary, request))
-                await self.update_channels(msg, reviewer, 'New review request', summary, request, bz_components)
+                await self.update_channels(bz_channels, msg, reviewer,
+                                           'New review request', summary,
+                                           request, bz_components)
 
     def load_registered_nicks(self):
         """Load the list of nicks that want messages."""
@@ -233,6 +238,32 @@ class ReviewBot(object):
         path = '%s.json' % key
         with codecs.open(path, 'wb', 'utf-8') as fh:
             json.dump(value, fh, sort_keys=True, indent=4)
+
+    def channels_for_bug_components(self, components):
+        """Obtain channels wanting notification for bug components.
+
+        Receives an iterable of string bug components of the form
+        ``X :: Y``. Returns a set of subscribed channels from the
+        loaded component to channel mapping.
+        """
+        channels = set()
+        for component in components:
+            channels |= set(self.bz_component_to_channels.get(component, []))
+
+            # Now do a loose match against patterns in the component.
+            for c in self.bz_component_to_channels:
+                if '*' not in c:
+                    continue
+
+                # "*" will get normalized to "\*"
+                pattern = re.escape(c)
+                # Replace normalized "\*" what a character class
+                pattern = pattern.replace(r'\*', '[a-zA-Z0-9_\:\-\s]+')
+                re_component = re.compile('^%s$' % pattern)
+                if re_component.match(c):
+                    channels |= set(self.bz_component_to_channels[c])
+
+        return channels
 
 
 def verify_state_key(key):
