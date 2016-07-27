@@ -161,7 +161,7 @@ class ReviewBot(object):
                 m = 'r+ granted on %s' % url
             else:
                 m = 'review submitted (%d issues to address) on %s' % (
-                    rr['issue_open_count'], url)
+                    rr['review_request']['issue_open_count'], url)
 
             summary = rr['review_request'].get('summary')
             if summary:
