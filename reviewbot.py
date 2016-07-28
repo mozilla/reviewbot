@@ -164,7 +164,7 @@ class ReviewBot(object):
         # it is a review reply. (At the time this was written, the Pulse
         # message could not distinguish between reviews and review replies,
         # which have different URLs.)
-        review_url = 'https://reviewboard.mozilla.org/api/review-requests/%d/reviews/%d' % (
+        review_url = 'https://reviewboard.mozilla.org/api/review-requests/%d/reviews/%d/' % (
             rrid, msg['payload']['review_id']
         )
 
