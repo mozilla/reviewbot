@@ -157,6 +157,27 @@ class ReviewBot(object):
 
         rr = await reviewboard.get_review_request_from_id(rrid)
         url = get_review_request_url(msg)
+        summary = rr['review_request'].get('summary')
+
+        # We currently detect review replies by querying the review URL.
+        # If we get a 200, it is a regular review. If we get a 404,
+        # it is a review reply. (At the time this was written, the Pulse
+        # message could not distinguish between reviews and review replies,
+        # which have different URLs.)
+        review_url = 'https://reviewboard.mozilla.org/api/review-requests/%d/reviews/%d' % (
+            rrid, msg['payload']['review_id']
+        )
+
+        resp = await reviewboard.get_url(review_url)
+        if resp.status_code == 404:
+            m = 'review reply on %s' % url
+            if summary:
+                m += ' (%s)' % summary
+
+            await self.bot.privmsg(irc_channel, '(no channel) %s' % m)
+            return
+
+        # Else this is a new review. OK to send messages.
 
         if rr['review_request']['approved']:
             m = 'r+ granted on %s' % url
@@ -164,7 +185,6 @@ class ReviewBot(object):
             m = 'review submitted (%d issues to address) on %s' % (
                 rr['review_request']['issue_open_count'], url)
 
-        summary = rr['review_request'].get('summary')
         if summary:
             m += ' (%s)' % summary
 
